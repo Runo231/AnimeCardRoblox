@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Stock Discord - ACC Market</title>
+    <style>
+        :root {
+            --bg-dark: #1e1f22;
+            --bg-card: #2b2d31;
+            --accent: #5865F2;
+            --text-main: #f2f3f5;
+            --text-muted: #949ba4;
+            --border: #1e1f22;
+            --gold: #f1c40f;
+            --emerald: #2ecc71;
+            --diamond: #3498db;
+            --void: #9b59b6;
+            --rainbow: #e91e63;
+            --error: #ff00ea; /* Rosa para ??? */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header & Config */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #3f4147;
+            padding-bottom: 10px;
+        }
+
+        .config-panel {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        input, select {
+            background: #111214;
+            border: 1px solid #111214;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #4752c4;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: gray;
+            margin-right: 5px;
+        }
+
+        .status-active { background: #23a559; box-shadow: 0 0 5px #23a559; }
+
+        /* Main Display (Latest Message) */
+        .latest-stock {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid #444;
+        }
+
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stock-card {
+            background: #111214;
+            border: 1px solid #3f4147;
+            padding: 15px;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .stock-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+
+        .stock-card.alert-match {
+            border: 2px solid #e74c3c;
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .card-rarity {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .card-price {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--emerald);
+            margin-top: 10px;
+        }
+
+        .card-stock {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .unknown-price {
+            color: var(--error) !important;
+            font-weight: bold;
+            text-shadow: 0 0 5px var(--error);
+        }
+
+        /* History Section */
+        .history-section {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #3f4147;
+        }
+
+        th {
+            color: var(--text-muted);
+        }
+        
+        /* Rarity Colors */
+        .rarity-Gold { color: var(--gold); border-color: var(--gold); }
+        .rarity-Emerald { color: var(--emerald); border-color: var(--emerald); }
+        .rarity-Void { color: var(--void); border-color: var(--void); }
+        .rarity-Diamond { color: var(--diamond); border-color: var(--diamond); }
+        .rarity-Rainbow { color: var(--rainbow); border-color: var(--rainbow); }
+        
+        .timer-display {
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: var(--accent);
+        }
+
+        .config-toggle {
+            cursor: pointer;
+            color: var(--accent);
+            text-decoration: underline;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        #alert-sound { display: none; }
+
+        .history-section details {
+            cursor: pointer;
+        }
+
+        .history-section summary {
+            padding: 10px;
+            background: rgba(88, 101, 242, 0.2);
+            border-radius: 4px;
+            font-weight: bold;
+            user-select: none;
+            margin-bottom: 10px;
+        }
+
+        .search-box {
+            margin: 10px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+        }
+
+        .search-box button {
+            padding: 10px 15px;
+        }
+
+        table tbody tr.hidden {
+            display: none;
+        }
+
+        .rarity-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 10px 0;
+        }
+
+        .rarity-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .rarity-checkbox input {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+        }
+
+        .rarity-checkbox label {
+            margin: 0;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .history-row-expanded {
+            display: none;
+        }
+
+        .history-row-expanded.show {
+            display: table-row;
+        }
+
+        .history-row-content {
+            padding: 20px !important;
+            background: #111214;
+        }
+
+        .history-row-content .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        tbody tr.history-clickable {
+            cursor: pointer;
+        }
+
+        tbody tr.history-clickable:hover {
+            background: rgba(88, 101, 242, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>ACC Market Monitor</h1>
+            <div style="text-align: right;">
+                <div class="timer-display" id="next-scan-timer">Esperando inicio...</div>
+                <small id="last-update">Última act: Nunca</small>
+            </div>
+        </header>
+
+        <div class="config-panel">
+            <div class="input-group">
+                <label for="auth-token">Authorization Token (Header)</label>
+                <input type="password" id="auth-token" placeholder="Introduce tu Token de Discord aquí...">
+            </div>
+            
+            <div class="input-group" style="display: none;">
+                <label for="scan-minutes">Minutos de Escaneo (separados por coma)</label>
+                <input type="text" id="scan-minutes" value="00, 10, 20, 30, 40, 50" placeholder="Ej: 00, 10, 20...">
+            </div>
+
+            <div class="input-group">
+                <label>Controles</label>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="startScheduler()" id="btn-start">Iniciar Monitor</button>
+                    <button onclick="stopScheduler()" id="btn-stop" style="background:#444; display:none;">Detener</button>
+                    <button onclick="fetchData()" style="background:#2b2d31; border: 1px solid white;">Test Manual</button>
+                </div>
+                <div style="margin-top: 5px;">
+                    <span class="status-indicator" id="status-dot"></span> <span id="status-text">Inactivo</span>
+                </div>
+            </div>
+        </div>
+
+        <details>
+            <summary class="config-toggle">Configurar Alertas y Precios</summary>
+            <div class="config-panel">
+                <div class="input-group">
+                    <label>Alertar por Rareza</label>
+                    <div class="rarity-checkboxes">
+                        <div class="rarity-checkbox">
+                            <input type="checkbox" id="rarity-diamond" value="Diamond" checked>
+                            <label for="rarity-diamond" style="color: var(--diamond);">◆ Diamond</label>
+                        </div>
+                        <div class="rarity-checkbox">
+                            <input type="checkbox" id="rarity-rainbow" value="Rainbow" checked>
+                            <label for="rarity-rainbow" style="color: var(--rainbow);">✨ Rainbow</label>
+                        </div>
+                        <div class="rarity-checkbox">
+                            <input type="checkbox" id="rarity-void" value="Void" checked>
+                            <label for="rarity-void" style="color: var(--void);">◆ Void</label>
+                        </div>
+                        <div class="rarity-checkbox">
+                            <input type="checkbox" id="rarity-emerald" value="Emerald">
+                            <label for="rarity-emerald" style="color: var(--emerald);">◆ Emerald</label>
+                        </div>
+                        <div class="rarity-checkbox">
+                            <input type="checkbox" id="rarity-gold" value="Gold">
+                            <label for="rarity-gold" style="color: var(--gold);">◆ Gold</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Rango de Precio (Min - Max)</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="number" id="alert-min-price" placeholder="Min" value="0" oninput="updatePricePreview()">
+                        <input type="number" id="alert-max-price" placeholder="Max (0 = infinito)" value="0" oninput="updatePricePreview()">
+                    </div>
+                    <div id="price-preview" style="margin-top: 10px; font-size: 1.1rem; font-weight: bold; color: var(--emerald); text-align: center;"></div>
+                </div>
+                <div class="input-group">
+                    <label>Sonido de Alerta</label>
+                    <select id="sound-enabled">
+                        <option value="yes">Activado</option>
+                        <option value="no">Desactivado</option>
+                    </select>
+                </div>
+            </div>
+        </details>
+
+        <div id="latest-container" class="latest-stock">
+            <h2 style="margin-top:0; border-bottom: 1px solid #444; padding-bottom: 10px;">📦 Stock Actual <span style="font-size:0.8rem; font-weight:normal; color:#999" id="latest-timestamp"></span></h2>
+            <div id="stock-display" class="stock-grid">
+                <div style="color: gray; grid-column: 1/-1; text-align: center; padding: 20px;">
+                    Esperando datos... Configura el token y pulsa "Iniciar" o "Test Manual".
+                </div>
+            </div>
+            <div id="raw-content" style="margin-top: 20px; font-family: monospace; white-space: pre-wrap; font-size: 0.8rem; color: #555; display:none;"></div>
+        </div>
+
+        <div class="history-section">
+            <details open>
+                <summary>📜 Historial (Últimos escaneos)</summary>
+                <div class="search-box">
+                    <input type="text" id="history-search" placeholder="Buscar Rainbow, cartas o nombres...">
+                    <button onclick="clearHistorySearch()">Limpiar</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="history-table">
+                        <thead>
+                            <tr>
+                                <th>Hora</th>
+                                <th>Resumen de Items (Top 3)</th>
+                                <th>ID Mensaje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <audio id="alert-audio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script>
+        // --- CARGAR Y GUARDAR CONFIGURACIÓN EN SESSION STORAGE ---
+        function loadConfigFromSessionStorage() {
+            const token = sessionStorage.getItem('auth-token');
+            if (token) document.getElementById('auth-token').value = token;
+            
+            const rarities = sessionStorage.getItem('alert-rarities');
+            if (rarities) {
+                const selectedRarities = rarities.split(',');
+                document.querySelectorAll('.rarity-checkbox input').forEach(checkbox => {
+                    checkbox.checked = selectedRarities.includes(checkbox.value);
+                });
+            }
+            
+            const minPrice = sessionStorage.getItem('alert-min-price');
+            if (minPrice) document.getElementById('alert-min-price').value = minPrice;
+            
+            const maxPrice = sessionStorage.getItem('alert-max-price');
+            if (maxPrice) document.getElementById('alert-max-price').value = maxPrice;
+            
+            const soundEnabled = sessionStorage.getItem('sound-enabled');
+            if (soundEnabled) document.getElementById('sound-enabled').value = soundEnabled;
+        }
+
+        function saveConfigToSessionStorage() {
+            sessionStorage.setItem('auth-token', document.getElementById('auth-token').value);
+            const selectedRarities = [];
+            document.querySelectorAll('.rarity-checkbox input:checked').forEach(checkbox => {
+                selectedRarities.push(checkbox.value);
+            });
+            sessionStorage.setItem('alert-rarities', selectedRarities.join(','));
+            sessionStorage.setItem('alert-min-price', document.getElementById('alert-min-price').value);
+            sessionStorage.setItem('alert-max-price', document.getElementById('alert-max-price').value);
+            sessionStorage.setItem('sound-enabled', document.getElementById('sound-enabled').value);
+        }
+
+        // Guardar cuando cambian los inputs
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfigFromSessionStorage();
+            
+            document.getElementById('auth-token').addEventListener('change', saveConfigToSessionStorage);
+            document.querySelectorAll('.rarity-checkbox input').forEach(checkbox => {
+                checkbox.addEventListener('change', saveConfigToSessionStorage);
+            });
+            document.getElementById('alert-min-price').addEventListener('change', saveConfigToSessionStorage);
+            document.getElementById('alert-max-price').addEventListener('change', saveConfigToSessionStorage);
+            document.getElementById('sound-enabled').addEventListener('change', saveConfigToSessionStorage);
+        });
+
+        // Función de búsqueda en historial
+        function searchHistory() {
+            const searchTerm = document.getElementById('history-search').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('#history-table tbody tr.history-clickable');
+            
+            rows.forEach((row, index) => {
+                // Obtener el contenido completo del item desde el data attribute
+                const fullContent = row.getAttribute('data-full-content') || '';
+                const text = row.textContent.toLowerCase();
+                
+                if (searchTerm === '' || text.includes(searchTerm) || fullContent.includes(searchTerm)) {
+                    row.classList.remove('hidden');
+                    // También mostrar/ocultar la fila expandida asociada
+                    const expandId = `expand-${index}`;
+                    const expandRow = document.getElementById(expandId);
+                    if (expandRow) expandRow.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                    // También ocultar la fila expandida asociada
+                    const expandId = `expand-${index}`;
+                    const expandRow = document.getElementById(expandId);
+                    if (expandRow) {
+                        expandRow.classList.add('hidden');
+                        expandRow.classList.remove('show');
+                    }
+                }
+            });
+        }
+
+        function clearHistorySearch() {
+            document.getElementById('history-search').value = '';
+            searchHistory();
+        }
+
+        // Función para actualizar la vista previa de precios formateados
+        function updatePricePreview() {
+            const minPrice = parseFloat(document.getElementById('alert-min-price').value) || 0;
+            const maxPrice = parseFloat(document.getElementById('alert-max-price').value) || 0;
+            const previewDiv = document.getElementById('price-preview');
+            
+            if (minPrice === 0 && maxPrice === 0) {
+                previewDiv.innerHTML = 'Sin límite';
+            } else if (minPrice > 0 && maxPrice === 0) {
+                previewDiv.innerHTML = `$ ${formatMoney(minPrice)}+`;
+            } else if (minPrice === 0 && maxPrice > 0) {
+                previewDiv.innerHTML = `$ 0 - ${formatMoney(maxPrice)}`;
+            } else {
+                previewDiv.innerHTML = `$ ${formatMoney(minPrice)} - ${formatMoney(maxPrice)}`;
+            }
+        }
+
+        // Agregar evento al input de búsqueda
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('history-search');
+            if (searchInput) {
+                searchInput.addEventListener('keyup', searchHistory);
+            }
+            // Actualizar vista previa inicial
+            updatePricePreview();
+        });
+
+        // --- CONFIGURACIÓN DE PRECIOS Y MULTIPLICADORES ---
+        const CONFIG = {
+            multipliers: {
+                "None": 1,
+                "Gold": 5,
+                "Emerald": 10,
+                "Void": 25,
+                "Diamond": 50,
+                "Rainbow": 70
+            },
+            basePrices: {
+                "Pirate": 100,
+                "Ninja": 650,
+                "Soul": 6000,
+                "Hunter": 1000000000000,
+                "Fire": 50000000000,
+                "Slayer": 250000,
+                "Solo": 3500000000000,
+                "Dragon": 5000000000,
+                "Chainsaw": 45000000000000,
+                "Titan": 12500000000000,
+                "Sorcerer": 50000000,
+                "Ego": 3000000000000000,
+                "Hero": 30000000000,
+            }
+        };
+
+        const API_URL = "https://discord.com/api/v9/channels/1461850724697772093/messages?limit=50";
+        
+        // --- ESTADO DE LA APP ---
+        let schedulerInterval = null;
+        let lastFetchMinute = -1;
+        let isRunning = false;
+
+        // --- UTILIDADES ---
+        
+        // Formateador de números (3.5T, 1.2B, etc.) - Incluye Q (Quadrillón = 1000T)
+        function formatMoney(number) {
+            if (number === 0) return '0';
+            
+            const units = [
+                { value: 1e15, symbol: 'Q' },  // Quadrillón
+                { value: 1e12, symbol: 'T' },  // Trillón
+                { value: 1e9, symbol: 'B' },   // Billón
+                { value: 1e6, symbol: 'M' },   // Millón
+                { value: 1e3, symbol: 'K' }    // Mil
+            ];
+            
+            for (let unit of units) {
+                if (Math.abs(number) >= unit.value) {
+                    return (number / unit.value).toFixed(1).replace(/\.0$/, '') + unit.symbol;
+                }
+            }
+            return number.toString();
+        }
+
+        // Parsear fecha
+        function formatDate(isoString) {
+            const d = new Date(isoString);
+            return d.toLocaleTimeString() + ' (' + d.toLocaleDateString() + ')';
+        }
+
+        // --- LÓGICA PRINCIPAL ---
+
+        // 1. Obtener y Validar Configuración de Alertas
+        function getAlertConfig() {
+            const rarities = [];
+            document.querySelectorAll('.rarity-checkbox input:checked').forEach(checkbox => {
+                rarities.push(checkbox.value.toLowerCase());
+            });
+            const min = parseFloat(document.getElementById('alert-min-price').value) || 0;
+            const max = parseFloat(document.getElementById('alert-max-price').value) || 0;
+            return { rarities, min, max };
+        }
+
+        // 2. Parsear el contenido del mensaje
+        function parseMessageContent(content) {
+            const lines = content.split('\n');
+            const parsedItems = [];
+            
+            // Regex: Busca "1. Nombre - [Rareza] || Stock: Numero"
+            const regex = /^\d+\.\s+(.+?)\s+-\s+\[(.+?)\]\s+\|\|\s+Stock:\s+(\d+)/;
+
+            lines.forEach(line => {
+                const match = line.match(regex);
+                if (match) {
+                    const name = match[1].trim();
+                    const rarity = match[2].trim();
+                    const stock = parseInt(match[3], 10);
+                    
+                    // Cálculo de precio
+                    let price = null;
+                    let displayPrice = "???";
+                    let isUnknown = false;
+
+                    if (CONFIG.basePrices[name] && CONFIG.multipliers[rarity] !== undefined) {
+                        price = CONFIG.basePrices[name] * CONFIG.multipliers[rarity];
+                        displayPrice = "$" + formatMoney(price);
+                    } else {
+                        isUnknown = true;
+                    }
+
+                    parsedItems.push({
+                        name,
+                        rarity,
+                        stock,
+                        price,
+                        displayPrice,
+                        isUnknown,
+                        originalLine: line
+                    });
+                }
+            });
+            return parsedItems;
+        }
+
+        // 3. Renderizar el mensaje más reciente
+        function renderLatest(message) {
+            const container = document.getElementById('stock-display');
+            const timestampElem = document.getElementById('latest-timestamp');
+            const rawContent = document.getElementById('raw-content');
+            
+            timestampElem.textContent = formatDate(message.timestamp);
+            rawContent.textContent = message.content; // Debug oculto
+            
+            const items = parseMessageContent(message.content);
+            const alertConfig = getAlertConfig();
+            let alertTriggered = false;
+
+            if (items.length === 0) {
+                container.innerHTML = `<div style="grid-column: 1/-1; padding:20px; background:#333; border-radius:8px;">No se detectaron items con formato estándar en el último mensaje.</div>`;
+                return;
+            }
+
+            let html = '';
+            items.forEach(item => {
+                // Lógica de Alerta: AMBAS condiciones deben cumplirse
+                let isAlert = false;
+                let matchesRarity = alertConfig.rarities.includes(item.rarity.toLowerCase());
+                let matchesPrice = true; // Por defecto true si no hay restricción de precio
+                
+                // Primero: chequear rareza
+                if (matchesRarity) {
+                    // Si cumple rareza, ahora chequear precio
+                    if (item.price !== null) {
+                        const minPrice = parseFloat(alertConfig.min) || 0;
+                        const maxPrice = parseFloat(alertConfig.max) || 0;
+                        
+                        // Si min > 0, tiene que estar en rango [min, max]
+                        if (minPrice > 0) {
+                            matchesPrice = item.price >= minPrice && (maxPrice === 0 || item.price <= maxPrice);
+                        }
+                        // Si min == 0 o vacío, sin límite de abajo. Si max == 0 o vacío, sin límite de arriba
+                        else if (maxPrice > 0) {
+                            matchesPrice = item.price <= maxPrice;
+                        }
+                        // Si ambos son 0 o vacíos, acepta todo
+                    }
+                    
+                    isAlert = matchesPrice;
+                }
+
+                if (item.isUnknown) {
+                    // Si el precio es ??? (desconocido), también dispara alerta
+                    matchesPrice = true;
+                    isAlert = true;
+                }
+
+                if (isAlert) alertTriggered = true;
+
+                const priceClass = item.isUnknown ? 'unknown-price' : 'card-price';
+                const rarityClass = `rarity-${item.rarity}`;
+                const alertClass = isAlert ? 'alert-match' : '';
+
+                html += `
+                <div class="stock-card ${alertClass} ${rarityClass}">
+                    <div class="card-header">
+                        <span>${item.name}</span>
+                        <span class="card-rarity ${rarityClass}" style="border:1px solid currentColor">${item.rarity}</span>
+                    </div>
+                    <div class="${priceClass}">${item.displayPrice}</div>
+                    <div class="card-stock">Stock: ${item.stock}</div>
+                </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            if (alertTriggered) {
+                playAlert();
+            }
+        }
+
+        function playAlert() {
+            if (document.getElementById('sound-enabled').value === 'yes') {
+                const audio = document.getElementById('alert-audio');
+                audio.play().catch(e => console.log("Audio bloqueado por navegador hasta interacción usuario"));
+            }
+        }
+
+        // 4. Renderizar historial
+        function renderHistory(messages) {
+            const tbody = document.querySelector('#history-table tbody');
+            let html = '';
+
+            // Saltamos el primero (index 0) porque ya se muestra arriba
+            const historyMessages = messages.slice(1);
+
+            historyMessages.forEach((msg, index) => {
+                const items = parseMessageContent(msg.content);
+                // Resumen corto (ej: Pirate, Ninja...)
+                const summary = items.slice(0, 3).map(i => `${i.name} [${i.rarity}]`).join(', ') + (items.length > 3 ? '...' : '');
+                const rowId = `history-row-${index}`;
+                const expandId = `expand-${index}`;
+
+                // Crear contenido de búsqueda con todos los items
+                const fullContent = items.map(i => `${i.name} ${i.rarity}`).join(' ').toLowerCase();
+
+                // Crear HTML para los items
+                let itemsHtml = '';
+                items.forEach(item => {
+                    const priceClass = item.isUnknown ? 'unknown-price' : 'card-price';
+                    const rarityClass = `rarity-${item.rarity}`;
+
+                    itemsHtml += `
+                    <div class="stock-card ${rarityClass}">
+                        <div class="card-header">
+                            <span>${item.name}</span>
+                            <span class="card-rarity ${rarityClass}" style="border:1px solid currentColor">${item.rarity}</span>
+                        </div>
+                        <div class="${priceClass}">${item.displayPrice}</div>
+                        <div class="card-stock">Stock: ${item.stock}</div>
+                    </div>
+                    `;
+                });
+
+                html += `
+                    <tr class="history-clickable" onclick="toggleHistoryRow('${expandId}')" data-full-content="${fullContent}">
+                        <td>${formatDate(msg.timestamp)}</td>
+                        <td>${summary || 'Mensaje de texto/sistema'}</td>
+                        <td><small>${msg.id}</small></td>
+                    </tr>
+                    <tr id="${expandId}" class="history-row-expanded">
+                        <td colspan="3" class="history-row-content">
+                            <h4 style="margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 10px;">Detalle del escaneo (${items.length} items)</h4>
+                            <div class="stock-grid">
+                                ${itemsHtml}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // Función para expandir/contraer filas del historial
+        function toggleHistoryRow(rowId) {
+            const row = document.getElementById(rowId);
+            if (row) {
+                row.classList.toggle('show');
+            }
+        }
+
+        // 5. Función FETCH (Llamada a la API)
+        async function fetchData() {
+            const token = document.getElementById('auth-token').value;
+            if (!token) {
+                alert("Por favor, introduce el Token de Autorización.");
+                return;
+            }
+
+            const statusDot = document.getElementById('status-dot');
+            statusDot.style.background = 'yellow'; // Cargando
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error API: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                // Actualizar UI
+                document.getElementById('last-update').textContent = "Última act: " + new Date().toLocaleTimeString();
+                
+                if (data && data.length > 0) {
+                    renderLatest(data[0]);
+                    renderHistory(data);
+                }
+
+                if (isRunning) {
+                    statusDot.style.background = '#23a559'; // Verde
+                } else {
+                    statusDot.style.background = 'gray';
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Fallo al obtener datos. Revisa la consola (F12) y asegúrate de tener una extensión CORS activada o el token correcto.");
+                statusDot.style.background = 'red';
+            }
+        }
+
+        // 6. SCHEDULER (Temporizador)
+        function startScheduler() {
+            if (isRunning) return;
+            
+            const token = document.getElementById('auth-token').value;
+            if (!token) {
+                alert("Introduce el token primero.");
+                return;
+            }
+
+            isRunning = true;
+            document.getElementById('btn-start').style.display = 'none';
+            document.getElementById('btn-stop').style.display = 'inline-block';
+            document.getElementById('status-text').textContent = "Monitor Activo";
+            document.getElementById('status-dot').className = "status-indicator status-active";
+
+            // Ejecutar inmediatamente una vez para ver datos
+            fetchData();
+
+            schedulerInterval = setInterval(checkTimeAndRun, 1000);
+        }
+
+        function stopScheduler() {
+            isRunning = false;
+            clearInterval(schedulerInterval);
+            document.getElementById('btn-start').style.display = 'inline-block';
+            document.getElementById('btn-stop').style.display = 'none';
+            document.getElementById('status-text').textContent = "Inactivo";
+            document.getElementById('status-dot').className = "status-indicator";
+            document.getElementById('next-scan-timer').textContent = "Pausado";
+        }
+
+        function checkTimeAndRun() {
+            const now = new Date();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            // Configuración de minutos del usuario (parsing string "00, 10, 20...")
+            const configInput = document.getElementById('scan-minutes').value;
+            const targetMinutes = configInput.split(',').map(m => parseInt(m.trim(), 10));
+
+            // Logica visual de "Próximo escaneo" - Calcula el próximo minuto en la lista
+            let nextMin = targetMinutes.find(m => m > minutes);
+            if (nextMin === undefined) nextMin = targetMinutes[0] + 60; // Siguiente hora
+            
+            const minsLeft = (nextMin > minutes ? nextMin : nextMin + 60) - minutes;
+            const secsLeft = 20 - seconds; // 20 es el segundo objetivo
+            document.getElementById('next-scan-timer').textContent = `Próximo: ${minsLeft}m ${secsLeft}s`;
+
+            // Lógica de Ejecución
+            // Si el minuto actual está en la lista Y estamos en el segundo 20 Y no hemos ejecutado ya en este minuto
+            if (targetMinutes.includes(minutes) && seconds >= 20) {
+                if (lastFetchMinute !== minutes) {
+                    // Ejecutar en el segundo 20
+                    console.log(`Ejecutando escaneo programado: Minuto ${minutes}:${seconds}`);
+                    fetchData();
+                    lastFetchMinute = minutes;
+                }
+            }
+        }
+
+    </script>
+</body>
+</html>
