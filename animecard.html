@@ -423,12 +423,12 @@
     <audio id="alert-audio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
     <script>
-        // --- CARGAR Y GUARDAR CONFIGURACIÓN EN SESSION STORAGE ---
-        function loadConfigFromSessionStorage() {
-            const token = sessionStorage.getItem('auth-token');
+        // --- CARGAR Y GUARDAR CONFIGURACIÓN EN LOCAL STORAGE ---
+        function loadConfigFromLocalStorage() {
+            const token = localStorage.getItem('auth-token');
             if (token) document.getElementById('auth-token').value = token;
             
-            const rarities = sessionStorage.getItem('alert-rarities');
+            const rarities = localStorage.getItem('alert-rarities');
             if (rarities) {
                 const selectedRarities = rarities.split(',');
                 document.querySelectorAll('.rarity-checkbox input').forEach(checkbox => {
@@ -436,42 +436,42 @@
                 });
             }
             
-            const minPrice = sessionStorage.getItem('alert-min-price');
+            const minPrice = localStorage.getItem('alert-min-price');
             if (minPrice) document.getElementById('alert-min-price').value = minPrice;
             
-            const maxPrice = sessionStorage.getItem('alert-max-price');
+            const maxPrice = localStorage.getItem('alert-max-price');
             if (maxPrice) document.getElementById('alert-max-price').value = maxPrice;
             
-            const soundEnabled = sessionStorage.getItem('sound-enabled');
+            const soundEnabled = localStorage.getItem('sound-enabled');
             if (soundEnabled) document.getElementById('sound-enabled').value = soundEnabled;
         }
 
-        function saveConfigToSessionStorage() {
-            sessionStorage.setItem('auth-token', document.getElementById('auth-token').value);
+        function saveConfigToLocalStorage() {
+            localStorage.setItem('auth-token', document.getElementById('auth-token').value);
             const selectedRarities = [];
             document.querySelectorAll('.rarity-checkbox input:checked').forEach(checkbox => {
                 selectedRarities.push(checkbox.value);
             });
-            sessionStorage.setItem('alert-rarities', selectedRarities.join(','));
-            sessionStorage.setItem('alert-min-price', document.getElementById('alert-min-price').value);
-            sessionStorage.setItem('alert-max-price', document.getElementById('alert-max-price').value);
-            sessionStorage.setItem('sound-enabled', document.getElementById('sound-enabled').value);
+            localStorage.setItem('alert-rarities', selectedRarities.join(','));
+            localStorage.setItem('alert-min-price', document.getElementById('alert-min-price').value);
+            localStorage.setItem('alert-max-price', document.getElementById('alert-max-price').value);
+            localStorage.setItem('sound-enabled', document.getElementById('sound-enabled').value);
         }
 
         // Guardar cuando cambian los inputs
         document.addEventListener('DOMContentLoaded', () => {
-            loadConfigFromSessionStorage();
+            loadConfigFromLocalStorage();
             
-            document.getElementById('auth-token').addEventListener('change', saveConfigToSessionStorage);
+            document.getElementById('auth-token').addEventListener('change', saveConfigToLocalStorage);
             document.querySelectorAll('.rarity-checkbox input').forEach(checkbox => {
-                checkbox.addEventListener('change', saveConfigToSessionStorage);
+                checkbox.addEventListener('change', saveConfigToLocalStorage);
             });
-            document.getElementById('alert-min-price').addEventListener('change', saveConfigToSessionStorage);
-            document.getElementById('alert-max-price').addEventListener('change', saveConfigToSessionStorage);
-            document.getElementById('sound-enabled').addEventListener('change', saveConfigToSessionStorage);
+            document.getElementById('alert-min-price').addEventListener('change', saveConfigToLocalStorage);
+            document.getElementById('alert-max-price').addEventListener('change', saveConfigToLocalStorage);
+            document.getElementById('sound-enabled').addEventListener('change', saveConfigToLocalStorage);
             
             // Si hay token guardado, iniciar el monitor automáticamente
-            const token = sessionStorage.getItem('auth-token');
+            const token = localStorage.getItem('auth-token');
             if (token) {
                 startScheduler();
             }
