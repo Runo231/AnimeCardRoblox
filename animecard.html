@@ -469,6 +469,12 @@
             document.getElementById('alert-min-price').addEventListener('change', saveConfigToSessionStorage);
             document.getElementById('alert-max-price').addEventListener('change', saveConfigToSessionStorage);
             document.getElementById('sound-enabled').addEventListener('change', saveConfigToSessionStorage);
+            
+            // Si hay token guardado, iniciar el monitor automáticamente
+            const token = sessionStorage.getItem('auth-token');
+            if (token) {
+                startScheduler();
+            }
         });
 
         // Función de búsqueda en historial
