@@ -887,8 +887,15 @@
             let nextMin = targetMinutes.find(m => m > minutes);
             if (nextMin === undefined) nextMin = targetMinutes[0] + 60; // Siguiente hora
             
-            const minsLeft = (nextMin > minutes ? nextMin : nextMin + 60) - minutes;
-            const secsLeft = 20 - seconds; // 20 es el segundo objetivo
+            let minsLeft = (nextMin > minutes ? nextMin : nextMin + 60) - minutes;
+            let secsLeft = 20 - seconds; // 20 es el segundo objetivo
+            
+            // Si los segundos son negativos, restar un minuto y sumar 60 segundos
+            if (secsLeft < 0) {
+                minsLeft -= 1;
+                secsLeft += 60;
+            }
+            
             document.getElementById('next-scan-timer').textContent = `Próximo: ${minsLeft}m ${secsLeft}s`;
 
             // Lógica de Ejecución
