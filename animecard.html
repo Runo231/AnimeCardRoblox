@@ -562,7 +562,9 @@
                 "Titan": 12500000000000,
                 "Chainsaw": 45000000000000,
                 "Flight": 250000000000000,
-                "Ego": 3000000000000000
+                "Ego": 3000000000000000,
+                "Clover": 20000000000000000,
+                "Ghoul": 100000000000000000
             }
         };
 
@@ -580,6 +582,7 @@
             if (number === 0) return '0';
             
             const units = [
+                { value: 1e18, symbol: 'QN' },  // Quintillón
                 { value: 1e15, symbol: 'Q' },  // Quadrillón
                 { value: 1e12, symbol: 'T' },  // Trillón
                 { value: 1e9, symbol: 'B' },   // Billón
